@@ -1,0 +1,87 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import integrate
+
+plt.close('all')
+
+def create_circle():
+    circle = plt.Circle((0, 0), radius=10, color='black', fill=False)
+    return circle
+
+def refindex(x, y):
+    A = 10
+    eps = 1e-6
+
+    rp0 = np.sqrt(x**2 + y**2)
+
+    n = 1 / (1 - A / (rp0 + eps))
+    fac = np.abs((1 - 9 * (A / rp0)**2 / 8))  # approx correction to Eikonal
+    nx = -fac * n**2 * A * x / (rp0 + eps)**3
+    ny = -fac * n**2 * A * y / (rp0 + eps)**3
+
+    return n, nx, ny
+
+def flow_deriv(x_y_z, t):
+    x, y, z, w = x_y_z
+
+    n, nx, ny = refindex(x, y)
+
+    yp = np.zeros(shape=(4,))
+    yp[0] = z / n
+    yp[1] = w / n
+    yp[2] = nx
+    yp[3] = ny
+
+    return yp
+
+# Set up the plot for all trajectories, including the circular photon orbit
+plt.figure(figsize=(10, 10))
+
+# Plotting the various photon orbits
+for loop in range(-5, 30):
+    xstart = -100
+    ystart = -2.245 + 4 * loop
+    print(ystart)
+
+    n, nx, ny = refindex(xstart, ystart)
+
+    y0 = [xstart, ystart, n, 0]
+
+    tspan = np.linspace(1, 400, 2000)
+
+    y = integrate.odeint(flow_deriv, y0, tspan)
+
+    xx = y[:, 0]
+    yy = y[:, 1]
+
+    plt.plot(xx, yy, linewidth=1)
+
+# Now set up and plot the circular photon orbit
+xstart = 0
+ystart = 15
+
+n, nx, ny = refindex(xstart, ystart)
+
+y0 = [xstart, ystart, n, 0]
+
+tspan = np.linspace(1, 94, 1000)
+
+y = integrate.odeint(flow_deriv, y0, tspan)
+
+xx = y[:, 0]
+yy = y[:, 1]
+
+plt.plot(xx, yy, linewidth=2, color='black', label='Circular Photon Orbit')
+
+# Add a circle to the plot
+c = create_circle()
+axes = plt.gca()
+axes.add_patch(c)
+
+# Set axis limits and scaling
+axes.set_xlim([-100, 100])
+axes.set_ylim([-100, 100])
+plt.axis('scaled')
+plt.title('Photon Orbits with Circular Photon Orbit')
+plt.legend()
+plt.show()
